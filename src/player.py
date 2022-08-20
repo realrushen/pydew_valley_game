@@ -150,3 +150,4 @@ class Player(pygame.sprite.Sprite):
         self.update_timers()
         self.move(dt)
         self.animate(dt)
+
