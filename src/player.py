@@ -77,7 +77,7 @@ class Player(pygame.sprite.Sprite):
         self.target_pos = self.rect.center + PLAYER_TOOL_OFFSET[self.status.split('_')[0]]
 
     def use_seed(self):
-        pass
+        self.soil_layer.plant_seed(self.target_pos, self.selected_seed)
 
     def import_assets(self):
         self.animations = {'up': [], 'down': [], 'left': [], 'right': [],
@@ -171,7 +171,7 @@ class Player(pygame.sprite.Sprite):
 
     def collision(self, direction):
         for sprite in self.collision_sprites.sprites():
-            if hasattr(sprite, 'hitbox') and sprite.hitbox.colliderect(self.hitbox):
+            if hasattr(sprite, 'hitbox') and sprite.hitbox is not None and sprite.hitbox.colliderect(self.hitbox):
                 if direction == 'horizontal':
                     if self.direction.x > 0:  # moving right
                         self.hitbox.right = sprite.hitbox.left
