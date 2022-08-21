@@ -51,3 +51,6 @@ PURCHASE_PRICES = {
     'corn': 4,
     'tomato': 5
 }
+
+# chance for rain to appear on day reset in %
+RAIN_CHANCE = 50

@@ -1,4 +1,6 @@
 # coding=utf-8
+import random
+
 import pygame
 from pytmx.util_pygame import load_pygame
 
@@ -32,7 +34,8 @@ class Level:
 
         # sky
         self.rain = Rain(self.all_sprites)
-        self.raining = True
+        self.raining = False
+        self.soil_layer.raining = self.raining
 
     def setup(self):
         tmx_data = load_pygame('../data/map.tmx')
@@ -106,6 +109,12 @@ class Level:
 
         # water
         self.soil_layer.remove_water()
+
+        # randomise the rain
+        self.raining = random.randint(0, 100) < RAIN_CHANCE
+        self.soil_layer.raining = self.raining
+        if self.raining:
+            self.soil_layer.water_all()
 
         # apples on trees
         for tree in self.tree_sprites.sprites():
