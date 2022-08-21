@@ -9,7 +9,7 @@ from player import Player
 from settings import *
 from sky import Rain
 from soil import SoilLayer
-from sprites import Generic, Water, WildFlower, Tree, Interaction
+from sprites import Generic, Water, WildFlower, Tree, Interaction, Particle
 from support import import_folder
 from transition import Transition
 
@@ -125,10 +125,27 @@ class Level:
                 apple.kill()
             tree.create_fruit()
 
+    def plant_collision(self):
+        if self.soil_layer.plant_sprites:
+            for plant in self.soil_layer.plant_sprites.sprites():
+                if plant.harvestable and plant.rect.colliderect(self.player.hitbox):
+                    self.player_add(plant.plant_type)
+                    plant.kill()
+                    Particle(
+                        pos=plant.rect.topleft,
+                        surf=plant.image,
+                        groups=self.all_sprites,
+                        z=LAYERS['main']
+                    )
+                    row = plant.rect.centerx // TILE_SIZE
+                    col = plant.rect.centery // TILE_SIZE
+                    self.soil_layer.grid[row][col].remove('P')
+
     def run(self, dt):
         self.display_surface.fill('black')
         self.all_sprites.custom_draw(self.player)
         self.all_sprites.update(dt)
+        self.plant_collision()
 
         self.overlay.display()
 
@@ -139,6 +156,7 @@ class Level:
         # transition overlay
         if self.player.sleep:
             self.transition.play()
+        print(self.player.item_inventory)
 
 
 class CameraGroup(pygame.sprite.Group):
