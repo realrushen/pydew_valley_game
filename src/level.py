@@ -4,6 +4,7 @@ import random
 import pygame
 from pytmx.util_pygame import load_pygame
 
+from menu import Menu
 from overlay import Overlay
 from player import Player
 from settings import *
@@ -37,6 +38,10 @@ class Level:
         self.raining = False
         self.soil_layer.raining = self.raining
         self.sky = Sky()
+
+        # shop
+        self.menu = Menu(self.player, self.toggle_shop)
+        self.shop_active = False
 
     def setup(self):
         tmx_data = load_pygame('../data/map.tmx')
@@ -85,14 +90,20 @@ class Level:
         for obj in tmx_data.get_layer_by_name('Player'):
             if obj.name == 'Start':
                 self.player = Player(
-                    pos=(obj.x, obj.y),
+                    # pos=(obj.x, obj.y),
+                    pos=(990, 590),
                     group=self.all_sprites,
                     collision_sprites=self.collision_sprites,
                     tree_sprites=self.tree_sprites,
                     interaction=self.interaction_sprites,
-                    soil_layer=self.soil_layer
+                    soil_layer=self.soil_layer,
+                    toggle_shop=self.toggle_shop
                 )
+
             if obj.name == 'Bed':
+                Interaction((obj.x, obj.y), (obj.width, obj.height), self.interaction_sprites, obj.name)
+
+            if obj.name == 'Trader':
                 Interaction((obj.x, obj.y), (obj.width, obj.height), self.interaction_sprites, obj.name)
 
         # ground
@@ -105,6 +116,10 @@ class Level:
 
     def player_add(self, item):
         self.player.item_inventory[item] += 1
+
+    def toggle_shop(self):
+
+        self.shop_active = not self.shop_active
 
     def reset(self):
 
@@ -146,24 +161,28 @@ class Level:
                     self.soil_layer.grid[row][col].remove('P')
 
     def run(self, dt):
+        # drawing logic
         self.display_surface.fill('black')
         self.all_sprites.custom_draw(self.player)
-        self.all_sprites.update(dt)
-        self.plant_collision()
 
+        # updates
+        if self.shop_active:
+            self.menu.update()
+        else:
+            self.all_sprites.update(dt)
+            self.plant_collision()
+
+        # UI overlay
         self.overlay.display()
 
-        # rain
-        if self.raining:
+        # weather
+        if self.raining and not self.shop_active:
             self.rain.update()
-
-        # daytime
         self.sky.display(dt)
 
         # transition overlay
         if self.player.sleep:
             self.transition.play()
-        print(self.player.item_inventory)
 
 
 class CameraGroup(pygame.sprite.Group):
