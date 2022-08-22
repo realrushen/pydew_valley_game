@@ -43,6 +43,13 @@ class Level:
         self.menu = Menu(self.player, self.toggle_shop)
         self.shop_active = False
 
+        # sound
+        self.success_sound = pygame.mixer.Sound('../audio/success.wav')
+        self.success_sound.set_volume(0.3)
+        self.music = pygame.mixer.Sound('../audio/music.mp3')
+        self.music.set_volume(0.1)
+        self.music.play(loops=-1)
+
     def setup(self):
         tmx_data = load_pygame('../data/map.tmx')
 
@@ -90,8 +97,7 @@ class Level:
         for obj in tmx_data.get_layer_by_name('Player'):
             if obj.name == 'Start':
                 self.player = Player(
-                    # pos=(obj.x, obj.y),
-                    pos=(990, 590),
+                    pos=(obj.x, obj.y),
                     group=self.all_sprites,
                     collision_sprites=self.collision_sprites,
                     tree_sprites=self.tree_sprites,
@@ -116,6 +122,7 @@ class Level:
 
     def player_add(self, item):
         self.player.item_inventory[item] += 1
+        self.success_sound.play()
 
     def toggle_shop(self):
 
@@ -158,7 +165,7 @@ class Level:
                     )
                     row = plant.rect.centerx // TILE_SIZE
                     col = plant.rect.centery // TILE_SIZE
-                    self.soil_layer.grid[row][col].remove('P')
+                    self.soil_layer.grid[col][row].remove('P')
 
     def run(self, dt):
         # drawing logic

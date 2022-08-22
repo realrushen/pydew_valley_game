@@ -53,4 +53,4 @@ PURCHASE_PRICES = {
 }
 
 # chance for rain to appear on day reset in %
-RAIN_CHANCE = 50
+RAIN_CHANCE = 30
