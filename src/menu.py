@@ -5,6 +5,9 @@ from timer import Timer
 
 class Menu:
     def __init__(self, player, toggle_menu):
+        self.price_surfs = None
+        self.sell_text = None
+        self.buy_text = None
         self.main_rect = None
         self.total_height = None
         self.text_surfs = None
@@ -61,7 +64,7 @@ class Menu:
                         self.player.money -= PURCHASE_PRICES[current_item]
                         self.player.seed_inventory[current_item] += 1
 
-    def show_entry(self, text_surf, amount, top, selected):
+    def show_entry(self, text_surf, price_surf, amount, top, selected):
         # background
         bg_rect = pygame.Rect(self.main_rect.left, top, self.width, text_surf.get_height() + (self.padding * 2))
         pygame.draw.rect(self.display_surface, 'White', bg_rect, 0, 4)
@@ -75,24 +78,28 @@ class Menu:
         amount_rect = amount_surf.get_rect(midright=(self.main_rect.right - 20, bg_rect.centery))
         self.display_surface.blit(amount_surf, amount_rect)
 
+        # price
+        price_rect = price_surf.get_rect(midleft=(self.main_rect.right - 150, bg_rect.centery))
+        self.display_surface.blit(price_surf, price_rect)
+
         # selected
         if selected:
             pygame.draw.rect(self.display_surface, 'black', bg_rect, 4, 4)
             if self.index > self.sell_border:  # buy
                 pos_rect = self.sell_text.get_rect(midleft=(self.main_rect.left + 150, bg_rect.centery))
                 self.display_surface.blit(self.buy_text, pos_rect)
-            else:
+            else: # sell
                 pos_rect = self.buy_text.get_rect(midleft=(self.main_rect.left + 150, bg_rect.centery))
                 self.display_surface.blit(self.sell_text, pos_rect)
 
     def update(self):
         self.input()
         self.display_money()
-        for text_index, text_surf in enumerate(self.text_surfs):
+        for text_index, (text_surf, price_surf) in enumerate(zip(self.text_surfs, self.price_surfs)):
             top = self.main_rect.top + text_index * (text_surf.get_height() + (self.padding * 2) + self.space)
             amount_list = list(self.player.item_inventory.values()) + list(self.player.seed_inventory.values())
             amount = amount_list[text_index]
-            self.show_entry(text_surf, amount, top, self.index == text_index)
+            self.show_entry(text_surf, price_surf, amount, top, self.index == text_index)
 
     def display_money(self):
         text_surf = self.font.render(f'${self.player.money}', False, 'Black')
@@ -103,10 +110,14 @@ class Menu:
     def setup(self):
         # create text surfaces
         self.text_surfs = []
+        self.price_surfs = []
         self.total_height = 0
-        for item in self.options:
+        for item_index, item in enumerate(self.options):
+            price = PURCHASE_PRICES[item] if item_index > self.sell_border else SALE_PRICES[item]
+            price_surf = self.font.render(f'${price}', False, 'Black')
             text_surf = self.font.render(item, False, 'Black')
             self.text_surfs.append(text_surf)
+            self.price_surfs.append(price_surf)
             self.total_height += text_surf.get_height() + (self.padding * 2)
 
         self.total_height += (len(self.text_surfs) - 1) * self.space
