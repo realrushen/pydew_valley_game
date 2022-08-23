@@ -1,24 +1,54 @@
 # coding=utf-8
+import itertools
+
 import pygame
+
+from exceptions import UnsupportedDirectionException
 from settings import *
 from support import import_folder
 from timer import Timer
+
+
+class PlayerStatus:
+    def __init__(self, direction, action=None):
+        self._direction = direction
+        self.action = action
+
+    def get(self):
+        if self.action:
+            return f'{self.direction}_{self.action}'
+        else:
+            return self._direction
+
+    @property
+    def direction(self):
+        return self._direction
+
+    @direction.setter
+    def direction(self, value):
+        if value in ['left', 'right', 'up', 'down']:
+            self._direction = value
+        else:
+            raise UnsupportedDirectionException()
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos, group, collision_sprites, tree_sprites, interaction, soil_layer, toggle_shop):
         super().__init__(group)
 
-        self.target_pos = None
-        self.animations = None
+        self.animations = {'up': [], 'down': [], 'left': [], 'right': [],
+                           'right_idle': [], 'left_idle': [], 'up_idle': [], 'down_idle': [],
+                           'right_hoe': [], 'left_hoe': [], 'up_hoe': [], 'down_hoe': [],
+                           'right_axe': [], 'left_axe': [], 'up_axe': [], 'down_axe': [],
+                           'right_water': [], 'left_water': [], 'up_water': [], 'down_water': []}
 
         self.import_assets()
 
-        self.status = 'down_idle'
+        self.status = PlayerStatus(direction='down', action='idle')
         self.frame_index = 0
 
         # general setup
-        self.image = self.animations[self.status][self.frame_index]
+        self.image = self.animations[self.status.get()][self.frame_index]
         self.rect = self.image.get_rect(center=pos)
         self.z = LAYERS['main']
 
@@ -41,13 +71,13 @@ class Player(pygame.sprite.Sprite):
 
         # tools
         self.tools = ['hoe', 'axe', 'water']
-        self.tool_index = 0
-        self.selected_tool = self.tools[self.tool_index]
+        self.tools_cycle = itertools.cycle(self.tools)
+        self.selected_tool = next(self.tools_cycle)
 
         # seeds
         self.seeds = ['corn', 'tomato']
-        self.seed_index = 0
-        self.selected_seed = self.seeds[self.seed_index]
+        self.seeds_cycle = itertools.cycle(self.seeds)
+        self.selected_seed = next(self.seeds_cycle)
 
         # inventory
         self.item_inventory = {
@@ -84,8 +114,9 @@ class Player(pygame.sprite.Sprite):
             self.watering_sound.play()
             self.soil_layer.water(self.target_pos)
 
-    def get_target_pos(self):
-        self.target_pos = self.rect.center + PLAYER_TOOL_OFFSET[self.status.split('_')[0]]
+    @property
+    def target_pos(self):
+        return self.rect.center + PLAYER_TOOL_OFFSET[self.status.direction]
 
     def use_seed(self):
         if self.seed_inventory[self.selected_seed] > 0:
@@ -93,11 +124,6 @@ class Player(pygame.sprite.Sprite):
             self.seed_inventory[self.selected_seed] -= 1
 
     def import_assets(self):
-        self.animations = {'up': [], 'down': [], 'left': [], 'right': [],
-                           'right_idle': [], 'left_idle': [], 'up_idle': [], 'down_idle': [],
-                           'right_hoe': [], 'left_hoe': [], 'up_hoe': [], 'down_hoe': [],
-                           'right_axe': [], 'left_axe': [], 'up_axe': [], 'down_axe': [],
-                           'right_water': [], 'left_water': [], 'up_water': [], 'down_water': [], }
 
         for animation in self.animations.keys():
             full_path = f'../graphics/character/{animation}'
@@ -105,9 +131,9 @@ class Player(pygame.sprite.Sprite):
 
     def animate(self, dt):
         self.frame_index += 4 * dt
-        if self.frame_index >= len(self.animations[self.status]):
+        if self.frame_index >= len(self.animations[self.status.get()]):
             self.frame_index = 0
-        self.image = self.animations[self.status][int(self.frame_index)]
+        self.image = self.animations[self.status.get()][int(self.frame_index)]
 
     def input(self):
         keys = pygame.key.get_pressed()
@@ -116,19 +142,19 @@ class Player(pygame.sprite.Sprite):
             # directions
             if keys[pygame.K_UP]:
                 self.direction.y = -1
-                self.status = 'up'
+                self.status = PlayerStatus(direction='up')
             elif keys[pygame.K_DOWN]:
                 self.direction.y = 1
-                self.status = 'down'
+                self.status = PlayerStatus(direction='down')
             else:
                 self.direction.y = 0
 
             if keys[pygame.K_LEFT]:
                 self.direction.x = -1
-                self.status = 'left'
+                self.status = PlayerStatus(direction='left')
             elif keys[pygame.K_RIGHT]:
                 self.direction.x = 1
-                self.status = 'right'
+                self.status = PlayerStatus(direction='right')
             else:
                 self.direction.x = 0
 
@@ -141,9 +167,7 @@ class Player(pygame.sprite.Sprite):
             # change tool
             if keys[pygame.K_q] and not self.timers['tool switch'].active:
                 self.timers['tool switch'].activate()
-                self.tool_index += 1
-                self.tool_index = self.tool_index if self.tool_index < len(self.tools) else 0
-                self.selected_tool = self.tools[self.tool_index]
+                self.selected_tool = next(self.tools_cycle)
 
             # seed use
             if keys[pygame.K_LCTRL]:
@@ -154,9 +178,7 @@ class Player(pygame.sprite.Sprite):
             # change seed
             if keys[pygame.K_e] and not self.timers['seed switch'].active:
                 self.timers['seed switch'].activate()
-                self.seed_index += 1
-                self.seed_index = self.seed_index if self.seed_index < len(self.seeds) else 0
-                self.selected_seed = self.seeds[self.seed_index]
+                self.selected_seed = next(self.seeds_cycle)
 
             if keys[pygame.K_RETURN]:
                 collided_interaction_sprite = pygame.sprite.spritecollide(self, self.interaction, dokill=False)
@@ -164,22 +186,17 @@ class Player(pygame.sprite.Sprite):
                     if collided_interaction_sprite[0].name == 'Trader':
                         self.toggle_shop()
                     else:
-                        self.status = 'left_idle'
+                        self.status = PlayerStatus(direction='left', action='idle')
                         self.sleep = True
 
-            if keys[pygame.K_F1]:
-                print(self.pos.x, self.pos.y)
-
-    def get_status(self):
+    def get_action(self):
         # idle
         if self.direction.magnitude() == 0:
-            direction, _, _ = self.status.partition('_')
-            self.status = f'{direction}_idle'
+            self.status.action = 'idle'
 
         # tool use
         if self.timers['tool use'].active:
-            direction, _, _ = self.status.partition('_')
-            self.status = f'{direction}_{self.selected_tool}'
+            self.status.action = self.selected_tool
 
     def update_timers(self):
         for timer in self.timers.values():
@@ -220,8 +237,7 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, dt):
         self.input()
-        self.get_status()
+        self.get_action()
         self.update_timers()
-        self.get_target_pos()
         self.move(dt)
         self.animate(dt)

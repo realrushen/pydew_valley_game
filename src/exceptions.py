@@ -1,0 +1,2 @@
+class UnsupportedDirectionException(Exception):
+    pass
