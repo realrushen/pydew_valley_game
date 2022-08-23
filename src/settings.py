@@ -54,3 +54,5 @@ PURCHASE_PRICES = {
 
 # chance for rain to appear on day reset in %
 RAIN_CHANCE = 30
+
+DAYTIME_TRANSITION_SPEED = 2
