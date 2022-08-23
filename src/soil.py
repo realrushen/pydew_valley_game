@@ -1,10 +1,9 @@
 import random
-from pprint import pprint
 
 import pygame
 from pytmx import load_pygame
 
-from settings import *
+import settings
 from support import import_folder_dict, import_folder
 
 
@@ -13,7 +12,7 @@ class SoilTile(pygame.sprite.Sprite):
         super().__init__(groups)
         self.image = surf
         self.rect = self.image.get_rect(topleft=pos)
-        self.z = LAYERS['soil']
+        self.z = settings.LAYERS['soil']
 
 
 class WaterTile(pygame.sprite.Sprite):
@@ -21,7 +20,7 @@ class WaterTile(pygame.sprite.Sprite):
         super().__init__(groups)
         self.image = surf
         self.rect = self.image.get_rect(topleft=pos)
-        self.z = LAYERS['soil water']
+        self.z = settings.LAYERS['soil water']
 
 
 class Plant(pygame.sprite.Sprite):
@@ -39,20 +38,20 @@ class Plant(pygame.sprite.Sprite):
         #  plant growing
         self.age = 0
         self.max_age = len(self.frames) - 1
-        self.grow_speed = GROW_SPEED[plant_type]
+        self.grow_speed = settings.GROW_SPEED[plant_type]
 
         # sprite setup
         self.image = self.frames[self.age]
         self.y_offset = -16 if plant_type == 'corn' else -8
         self.rect = self.image.get_rect(midbottom=soil.rect.midbottom + pygame.math.Vector2(0, self.y_offset))
-        self.z = LAYERS['ground plant']
+        self.z = settings.LAYERS['ground plant']
 
     def grow(self):
         if self.check_watered(self.rect.center):
             self.age += self.grow_speed
 
             if int(self.age) > 0:
-                self.z = LAYERS['main']
+                self.z = settings.LAYERS['main']
                 self.hitbox = self.rect.copy().inflate(-26, -self.rect.height * 0.4)
 
             if self.age >= self.max_age:
@@ -60,7 +59,9 @@ class Plant(pygame.sprite.Sprite):
                 self.harvestable = True
 
             self.image = self.frames[int(self.age)]
-            self.rect = self.image.get_rect(midbottom=self.soil.rect.midbottom + pygame.math.Vector2(0, self.y_offset))
+            self.rect = self.image.get_rect(
+                midbottom=self.soil.rect.midbottom + pygame.math.Vector2(0, self.y_offset)
+            )
 
 
 class SoilLayer:
@@ -92,7 +93,7 @@ class SoilLayer:
 
     def create_soil_grid(self):
         ground = pygame.image.load('../graphics/world/ground.png')
-        v_tiles, h_tiles = ground.get_width() // TILE_SIZE, ground.get_height() // TILE_SIZE
+        v_tiles, h_tiles = ground.get_width() // settings.TILE_SIZE, ground.get_height() // settings.TILE_SIZE
 
         self.grid = [[[] for col in range(h_tiles)] for row in range(v_tiles)]
         for x, y, _ in load_pygame('../data/map.tmx').get_layer_by_name('Farmable').tiles():
@@ -103,17 +104,17 @@ class SoilLayer:
         for index_row, row in enumerate(self.grid):
             for index_col, cell in enumerate(row):
                 if 'F' in cell:
-                    x = index_col * TILE_SIZE
-                    y = index_row * TILE_SIZE
-                    rect = pygame.Rect(x, y, TILE_SIZE, TILE_SIZE)
+                    x = index_col * settings.TILE_SIZE
+                    y = index_row * settings.TILE_SIZE
+                    rect = pygame.Rect(x, y, settings.TILE_SIZE, settings.TILE_SIZE)
                     self.hit_rects.append(rect)
 
     def get_hit(self, point):
         for rect in self.hit_rects:
             if rect.collidepoint(point):
                 self.hoe_sound.play()
-                x = rect.x // TILE_SIZE
-                y = rect.y // TILE_SIZE
+                x = rect.x // settings.TILE_SIZE
+                y = rect.y // settings.TILE_SIZE
 
                 if 'F' in self.grid[y][x]:
                     self.grid[y][x].append('X')
@@ -125,8 +126,8 @@ class SoilLayer:
         for soil_sprite in self.soil_sprites.sprites():
             if soil_sprite.rect.collidepoint(target_pos):
                 # add 'W' entry to the soil grid
-                x = soil_sprite.rect.x // TILE_SIZE
-                y = soil_sprite.rect.y // TILE_SIZE
+                x = soil_sprite.rect.x // settings.TILE_SIZE
+                y = soil_sprite.rect.y // settings.TILE_SIZE
                 self.grid[y][x].append('W')
 
                 # create a water sprite
@@ -138,8 +139,8 @@ class SoilLayer:
             for index_col, cell in enumerate(row):
                 if 'X' in cell and 'W' not in cell:
                     cell.append('W')
-                    x = index_col * TILE_SIZE
-                    y = index_row * TILE_SIZE
+                    x = index_col * settings.TILE_SIZE
+                    y = index_row * settings.TILE_SIZE
                     random_water_surf = random.choice(self.water_surfs)
                     WaterTile((x, y), random_water_surf, [self.all_sprites, self.water_sprites])
 
@@ -155,8 +156,8 @@ class SoilLayer:
                     cell.remove('W')
 
     def check_watered(self, pos):
-        x = pos[0] // TILE_SIZE
-        y = pos[1] // TILE_SIZE
+        x = pos[0] // settings.TILE_SIZE
+        y = pos[1] // settings.TILE_SIZE
         cell = self.grid[y][x]
         is_watered = 'W' in cell
         return is_watered
@@ -165,8 +166,8 @@ class SoilLayer:
         for soil_sprite in self.soil_sprites.sprites():
             if soil_sprite.rect.collidepoint(target_pos):
 
-                x = soil_sprite.rect.x // TILE_SIZE
-                y = soil_sprite.rect.y // TILE_SIZE
+                x = soil_sprite.rect.x // settings.TILE_SIZE
+                y = soil_sprite.rect.y // settings.TILE_SIZE
 
                 if 'P' not in self.grid[y][x]:
                     self.plant_sound.play()
@@ -239,7 +240,7 @@ class SoilLayer:
                     # FIXME: add more logic to fix not ideal tiling
 
                     SoilTile(
-                        pos=(index_col * TILE_SIZE, index_row * TILE_SIZE),
+                        pos=(index_col * settings.TILE_SIZE, index_row * settings.TILE_SIZE),
                         surf=self.soil_surfs[tile_type],
                         groups=[self.all_sprites, self.soil_sprites]
                     )
