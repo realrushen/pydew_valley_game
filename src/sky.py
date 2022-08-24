@@ -50,7 +50,7 @@ class Drop(Generic):
 
         # general setup
         super().__init__(pos, surf, groups, z)
-        self.lifetime = random.randint(400, 500)
+        self.lifetime = random.randint(400, 500)  # in milliseconds
         self.start_time = pygame.time.get_ticks()
 
         # moving

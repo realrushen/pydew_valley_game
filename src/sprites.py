@@ -71,11 +71,13 @@ class Particle(Generic):
 
 
 class Tree(Generic):
+    MAX_HEALTH = 5
     def __init__(self, pos, surf, groups, name, player_add):
         super().__init__(pos, surf, groups)
 
-        self.health = 5
+        self.health = Tree.MAX_HEALTH
         self.alive = True
+        self.tree_surf = surf
         self.stump_surf = pygame.image.load(f'../graphics/stumps/{"small" if name == "Small" else "large"}.png')
 
         # apples
@@ -90,7 +92,7 @@ class Tree(Generic):
         self.axe_sound = pygame.mixer.Sound('../audio/axe.mp3')
 
     def damage(self):
-        # damaging th tree
+        # damaging the tree
         self.health -= 1
 
         # play sound
@@ -138,3 +140,11 @@ class Tree(Generic):
                     groups=[self.apple_sprites, self.groups()[0]],
                     z=LAYERS['fruit']
                 )
+
+    def restore(self):
+        self.health = Tree.MAX_HEALTH
+        self.image = self.tree_surf
+        self.rect = self.image.get_rect(midbottom=self.rect.midbottom)
+        self.hitbox = self.rect.copy().inflate(-self.rect.width * 0.2, -self.rect.height * 0.75)
+        self.alive = True
+

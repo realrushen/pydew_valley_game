@@ -142,14 +142,18 @@ class Level:
         if self.raining:
             self.soil_layer.water_all()
 
-        # apples on trees
+        # trees
+
+
+        # trees and apples on it
         for tree in self.tree_sprites.sprites():
+            tree.restore()
             for apple in tree.apple_sprites.sprites():
                 apple.kill()
             tree.create_fruit()
 
         # sky
-        self.sky.current_color = [255, 255, 255]
+        self.sky.current_color = self.sky.start_color
 
     def plant_collision(self):
         if self.soil_layer.plant_sprites:
