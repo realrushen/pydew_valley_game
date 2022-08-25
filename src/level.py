@@ -142,9 +142,6 @@ class Level:
         if self.raining:
             self.soil_layer.water_all()
 
-        # trees
-
-
         # trees and apples on it
         for tree in self.tree_sprites.sprites():
             tree.restore()
